@@ -9,7 +9,7 @@ environment spins J_i."""
 Alist=np.array([0,0])#np.array([1,2])
 envdim=2**len(Alist) #dimension of the environment of len(Alist) qubits
 
-""" wlist is a list of nuclear Zeeman energies, denoted \omega_{\alpha [i]} in Cywinski paper """
+""" wlist is a list of nuclear Zeeman energies, denoted \omega_{\alpha [i]} in Cywinski paper"""
 wlist=np.array([0,0])#[0.2,0.5])
 
 """ bmat is a matrix of dipolar couplings of the nuclei, denoted b_{ij} in eq. 5 in Cywinski paper.
