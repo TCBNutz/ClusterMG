@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 from sarmaH import *
 
-ph=4 #number of photons
+ph=2 #number of photons
 
 """ Alist is a list of coefficients A_i giving the hyperfine interaction strengths with
 environment spins J_i."""
@@ -42,7 +42,7 @@ A10=Unum[envdim:,0:envdim]
 A11=Unum[envdim:,envdim:]
 
 """ propagator in block form """
-U=[[A00,A01],[A10,A11]]
+U=np.array([[A00,A01],[A10,A11]])
 
 b=list(itertools.product([0,1],repeat=ph)) #all possible bit strings with ph bits
 
@@ -53,12 +53,11 @@ identity=np.diag([1]*envdim)
 """ creating Fb as a list of np.array objects, each being a matrix acting on the environment
 corresponding to the operator F(\vec(b) in Dara's paper eq. 2) """
 for j in range(2**ph):
-    Fb[j]=identity
     for i in range(ph):
         if i==0:
-            Fb[j]=np.dot(U[b[j][i]][b[j][0]],Fb[j])
+            Fb[j]=np.dot(U[b[j][ph-1],0],identity)
         else:
-            Fb[j]=np.dot(U[b[j][i]][b[j][i-1]],Fb[j])
+            Fb[j]=np.dot(U[b[j][ph-i-1],b[j][ph-i]],Fb[j])
 
 
 envinit=np.diag([1.]*envdim)/envdim #initial state of the environment, zero polarization
@@ -68,7 +67,7 @@ string. Hence the ith column is [[1],[0]] if the last bit in the ith bit string 
 [[0],[1]] otherwise"""
 aux1=np.array([[0]*2**ph,[0]*2**ph])
 for i in range(2**ph):
-    if b[i][ph-1]==0:
+    if b[i][0]==0:
         aux1[0,i]=1
     else:
         aux1[1,i]=1
@@ -85,11 +84,30 @@ dmat=np.array([[0.]*2**(ph+1)*envdim]*2**(ph+1)*envdim)
 for i in range(2**ph):
     for j in range(2**ph):
         dmat=dmat+np.kron(np.kron(aux2[i],aux2[j].T[0]),np.dot(Fb[i],np.dot(envinit,np.conj(Fb[j].T))))
-        
+
+""" dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
+state we must rotate once more and then apply a Z-gate to each photon"""
+
+"""Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
+phidentity=np.diag([1.]*2**ph) #identity on photon string Hilbert space
+Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,A00))+np.kron([[0,1],[0,0]],np.kron(phidentity,A01))+np.kron([[0,0],[1,0]],np.kron(phidentity,A10))+np.kron([[0,0],[0,1]],np.kron(phidentity,A11))
+
+"""Z-gate on each photon"""
+PauliZ=np.array([[1,0],[0,-1]])
+Zphi=[0,PauliZ]
+for i in range(ph-1):
+    Zphi[0]=np.kron(Zphi[1],PauliZ)
+    Zphi[1]=Zphi[0]
+
+Zph=Zphi[0] # this is Z x Z x ... Z (ph times)
+ZphBig=np.kron(np.array([[1,0],[0,1]]),np.kron(Zph,identity))
+
+dmat=np.dot(np.dot(ZphBig,Uph),np.dot(dmat,np.conj(np.dot(ZphBig,Uph).T)))
+
 """ tracing over the environment to obtain the reduced density matrix dmatred """
 dmatred=np.array([[0.+0.j]*2**(ph+1)]*2**(ph+1))
 for m in range(2**(ph+1)):
     for n in range(2**(ph+1)):
         dmatred[m,n]=np.trace(dmat[m*envdim:(m+1)*envdim,n*envdim:(n+1)*envdim])
 
-print(np.trace(dmatred))
+print(dmatred)
