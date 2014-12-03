@@ -1,20 +1,21 @@
 import itertools
 import numpy as np
 from sarmaH import *
+import pauli
 
-ph=2 #number of photons
+ph=2#number of photons
 
 """ Alist is a list of coefficients A_i giving the hyperfine interaction strengths with
 environment spins J_i."""
-Alist=np.array([0,0])#np.array([1,2])
+Alist=np.array([0,0,0,0])
 envdim=2**len(Alist) #dimension of the environment of len(Alist) qubits
 
 """ wlist is a list of nuclear Zeeman energies, denoted \omega_{\alpha [i]} in Cywinski paper"""
-wlist=np.array([0,0])#[0.2,0.5])
+wlist=np.array([0,0,0,0])
 
 """ bmat is a matrix of dipolar couplings of the nuclei, denoted b_{ij} in eq. 5 in Cywinski paper.
 bmat is symmetric and has zero diagonal """
-bmat=np.array([[0,0],[0,0]])#[[0,1],[1,0]])
+bmat=np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
 
 """ Omega is the Zeeman energy of the emitter spin """
 Omega=15
@@ -23,7 +24,7 @@ Omega=15
 OmegaEff=Omega + 0.25*sum(Alist**2)/Omega
 
 """ constructing the pure dephasing Hamiltonian """
-HamiltonianPD=STot(2,Alist,wlist,bmat,Omega)
+HamiltonianPD=STot(len(Alist),Alist,wlist,bmat,Omega)
 
 """ eigensystem of HamiltonianPD in the form
 (array([eig.val.1, eig.val.2,...]), array([eigenvector1,eigenvector2,...]))"""
@@ -60,7 +61,15 @@ for j in range(2**ph):
             Fb[j]=np.dot(U[b[j][ph-i-1],b[j][ph-i]],Fb[j])
 
 
-envinit=np.diag([1.]*envdim)/envdim #initial state of the environment, zero polarization
+""" density matrix of initial state of the environment, chosen as mix of all states with the minimum
+absolute value of total S_y. Might use Dara's solution from sarmaH later, but just do it by brute
+force for four environment spins here"""
+envinit=1.0/6.0*(np.outer(np.conj(np.kron(pauli.yp,np.kron(pauli.yp,np.kron(pauli.ym, pauli.ym))).T),np.kron(pauli.yp,np.kron(pauli.yp,np.kron(pauli.ym, pauli.ym))))+ \
+                 np.outer(np.conj(np.kron(pauli.yp,np.kron(pauli.ym,np.kron(pauli.ym, pauli.yp))).T),np.kron(pauli.yp,np.kron(pauli.ym,np.kron(pauli.ym, pauli.yp))))+ \
+                 np.outer(np.conj(np.kron(pauli.ym,np.kron(pauli.ym,np.kron(pauli.yp, pauli.yp))).T),np.kron(pauli.ym,np.kron(pauli.ym,np.kron(pauli.yp, pauli.yp))))+ \
+                 np.outer(np.conj(np.kron(pauli.yp,np.kron(pauli.ym,np.kron(pauli.yp, pauli.ym))).T),np.kron(pauli.yp,np.kron(pauli.ym,np.kron(pauli.yp, pauli.ym))))+ \
+                 np.outer(np.conj(np.kron(pauli.ym,np.kron(pauli.yp,np.kron(pauli.ym, pauli.yp))).T),np.kron(pauli.ym,np.kron(pauli.yp,np.kron(pauli.ym, pauli.yp))))+ \
+                 np.outer(np.conj(np.kron(pauli.ym,np.kron(pauli.yp,np.kron(pauli.yp, pauli.ym))).T),np.kron(pauli.ym,np.kron(pauli.yp,np.kron(pauli.yp, pauli.ym)))))
 
 """ aux1 is a matrix such that every column is the state of the emitter corresponding to a bit
 string. Hence the ith column is [[1],[0]] if the last bit in the ith bit string is 0 and
@@ -90,7 +99,9 @@ state we must rotate once more and then apply a Z-gate to each photon"""
 
 """Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
 phidentity=np.diag([1.]*2**ph) #identity on photon string Hilbert space
-Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,A00))+np.kron([[0,1],[0,0]],np.kron(phidentity,A01))+np.kron([[0,0],[1,0]],np.kron(phidentity,A10))+np.kron([[0,0],[0,1]],np.kron(phidentity,A11))
+Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,A00))+\
+np.kron([[0,1],[0,0]],np.kron(phidentity,A01))+np.kron([[0,0],[1,0]],np.kron(phidentity,A10))+ \
+np.kron([[0,0],[0,1]],np.kron(phidentity,A11))
 
 """Z-gate on each photon"""
 PauliZ=np.array([[1,0],[0,-1]])
@@ -110,4 +121,12 @@ for m in range(2**(ph+1)):
     for n in range(2**(ph+1)):
         dmatred[m,n]=np.trace(dmat[m*envdim:(m+1)*envdim,n*envdim:(n+1)*envdim])
 
-print(dmatred)
+
+""" gives the density matrix on n qubits initially in state dmatrix after measurement of typ - (id,z+1,z-1,x+1,x-1) on qubit wh = (0,1,...) """
+projectors=[np.array([[1,0],[0,1]]),np.array([[1,0],[0,0]]),np.array([[0,0],[0,1]]),0.5*np.array([[1,1],[1,1]]),0.5*np.array([[1,-1],[-1,1]])]
+def measurement(dmatrix,typ,wh,n):
+	projector=reduce(np.kron,(projectors[typ] if i==wh else projectors[0] for i in range(n)))
+	dmatnew=reduce(np.dot,(projector,dmatrix,projector))
+	return 1.0/np.trace(dmatnew)*dmatnew
+
+print(measurement(dmatred,1,0,3))
