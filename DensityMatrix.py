@@ -2,8 +2,9 @@ import itertools
 import numpy as np
 from sarmaH import *
 import pauli
+import auxiliary as aux
 
-ph=2#number of photons
+ph=7#number of photons
 
 """ Alist is a list of coefficients A_i giving the hyperfine interaction strengths with
 environment spins J_i."""
@@ -121,12 +122,4 @@ for m in range(2**(ph+1)):
     for n in range(2**(ph+1)):
         dmatred[m,n]=np.trace(dmat[m*envdim:(m+1)*envdim,n*envdim:(n+1)*envdim])
 
-
-""" gives the density matrix on n qubits initially in state dmatrix after measurement of typ - (id,z+1,z-1,x+1,x-1) on qubit wh = (0,1,...) """
-projectors=[np.array([[1,0],[0,1]]),np.array([[1,0],[0,0]]),np.array([[0,0],[0,1]]),0.5*np.array([[1,1],[1,1]]),0.5*np.array([[1,-1],[-1,1]])]
-def measurement(dmatrix,typ,wh,n):
-	projector=reduce(np.kron,(projectors[typ] if i==wh else projectors[0] for i in range(n)))
-	dmatnew=reduce(np.dot,(projector,dmatrix,projector))
-	return 1.0/np.trace(dmatnew)*dmatnew
-
-print(measurement(dmatred,1,0,3))
+print(np.trace(aux.measurement(dmatred,1,1.0/np.sqrt(2.0)*np.array([1,1]))))
