@@ -4,22 +4,13 @@ from sarmaH import *
 import pauli
 import auxiliary as aux
 
-ph=7#number of photons
-
-""" Alist is a list of coefficients A_i giving the hyperfine interaction strengths with
-environment spins J_i."""
-Alist=np.array([0,0,0,0])
-envdim=2**len(Alist) #dimension of the environment of len(Alist) qubits
-
-""" wlist is a list of nuclear Zeeman energies, denoted \omega_{\alpha [i]} in Cywinski paper"""
-wlist=np.array([0,0,0,0])
-
-""" bmat is a matrix of dipolar couplings of the nuclei, denoted b_{ij} in eq. 5 in Cywinski paper.
-bmat is symmetric and has zero diagonal """
-bmat=np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]])
-
-""" Omega is the Zeeman energy of the emitter spin """
-Omega=15
+""" setting parameters """
+ph=2#number of photons
+Alist=np.array([0,0,0,0])#hyperfine coefficients
+envdim=2**len(Alist) #environment dimension
+wlist=np.array([0,0,0,0]) #nuclear Zeeman
+bmat=np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]) #dipolar coupling
+Omega=15 #emitter Zeeman
 
 """ OmegaEff gives the effective magnetic field, we choose an average Overhauser field of zero """
 OmegaEff=Omega + 0.25*sum(Alist**2)/Omega
@@ -38,13 +29,8 @@ Udiag=np.diag(np.exp(-1j*0.5*np.pi*eigsys[0]/OmegaEff))
 """ propagator in the numberbasis """
 Unum=np.dot(eigsys[1],np.dot(Udiag,np.conj(eigsys[1].T)))
 
-A00=Unum[0:envdim,0:envdim]
-A01=Unum[0:envdim,envdim:]
-A10=Unum[envdim:,0:envdim]
-A11=Unum[envdim:,envdim:]
-
-""" propagator in block form """
-U=np.array([[A00,A01],[A10,A11]])
+""" Dara's A00,A01,A10,A11 environment operators """
+U=np.array([[Unum[0:envdim,0:envdim],Unum[0:envdim,envdim:]],[Unum[envdim:,0:envdim],Unum[envdim:,envdim:]]])
 
 b=list(itertools.product([0,1],repeat=ph)) #all possible bit strings with ph bits
 
@@ -100,9 +86,9 @@ state we must rotate once more and then apply a Z-gate to each photon"""
 
 """Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
 phidentity=np.diag([1.]*2**ph) #identity on photon string Hilbert space
-Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,A00))+\
-np.kron([[0,1],[0,0]],np.kron(phidentity,A01))+np.kron([[0,0],[1,0]],np.kron(phidentity,A10))+ \
-np.kron([[0,0],[0,1]],np.kron(phidentity,A11))
+Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,U[0,0]))+\
+np.kron([[0,1],[0,0]],np.kron(phidentity,U[0,1]))+np.kron([[0,0],[1,0]],np.kron(phidentity,U[1,0]))+ \
+np.kron([[0,0],[0,1]],np.kron(phidentity,U[1,1]))
 
 """Z-gate on each photon"""
 PauliZ=np.array([[1,0],[0,-1]])
@@ -122,4 +108,4 @@ for m in range(2**(ph+1)):
     for n in range(2**(ph+1)):
         dmatred[m,n]=np.trace(dmat[m*envdim:(m+1)*envdim,n*envdim:(n+1)*envdim])
 
-print(np.trace(aux.measurement(dmatred,1,1.0/np.sqrt(2.0)*np.array([1,1]))))
+print(dmatred)
