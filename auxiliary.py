@@ -3,7 +3,7 @@ import itertools
 import numpy as np
 from sarmaH import *
 
-""" function to give state of the unmeasured qubits after projective measurement
+""" function measurement returns state of the unmeasured qubits after projective measurement
 onto |state> state of qubit at position position. Initial state given by dmat."""
 def measurement(dmat,position,state):
     qb=int(np.round(np.log2(len(dmat[0])))) # number of qubits in initial state
@@ -26,6 +26,8 @@ def measurement(dmat,position,state):
     dmatnew=reduce(np.dot,[np.conj(a),dmat,a.T])
     return 1.0/np.trace(dmatnew)*dmatnew
 
+""" function dmat gives full Emitter x PhotonString x Environment density matrix. ph is number of photons, Omega is
+Zeeman energy of emitter, wlist is list of Zeeman energies of environment spins, Alist is list of hyperfine couplings"""
 def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     envdim=2**len(Alist) #environment dimension
     OmegaEff=Omega + 0.25*sum(Alist**2)/Omega #effective magnetic field, <Overhauser> = 0
