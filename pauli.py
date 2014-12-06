@@ -4,7 +4,7 @@ Note from Pete: I've worked through this and optimized it a bit.
 Still some #TODOs left
 """
 import numpy as np
-import errorcounting as erc
+#import errorcounting as erc
 
 # These define pauli operators
 sx = np.array([[0,1],[1,0]])

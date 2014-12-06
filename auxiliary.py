@@ -63,16 +63,19 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
             aux1[0,i]=1
         else:
             aux1[1,i]=1        
+
     for i in range(2**ph):
         aux3=np.array([[0]]*2**ph)
         aux3[i,0]=1
         aux2[i]=np.kron(aux1[:,[i]],aux3)
 
     """full density matrix dmat"""
+    # TODO: this is the dominant fraction of time
     dmatCn=np.array([[0.+0.J]*2**(ph+1)*envdim]*2**(ph+1)*envdim)
     for i in range(2**ph):
         for j in range(2**ph):
             dmatCn=dmatCn+np.kron(np.kron(aux2[i],aux2[j].T[0]),np.dot(Fb[i],np.dot(envinit,np.conj(Fb[j].T))))
+    print "awd"
 
     """ dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
     state we must rotate once more and then apply a Z-gate to each photon"""
