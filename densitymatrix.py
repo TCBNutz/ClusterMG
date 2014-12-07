@@ -3,7 +3,6 @@ import pauli
 import auxiliary as aux
 from sarmaH import *
 import itertools
-from time import clock
 
 def main():
     """ setting parameters """
@@ -38,8 +37,28 @@ def main():
     print "finished"
 
 if __name__ == '__main__':
-    t=clock()
+    from time import clock
+    import anydbm
+    from datetime import datetime
+    from matplotlib import pyplot as plt
+    db = anydbm.open("progress.db", "c")
+    starttime=clock()
     main()
-    print clock()-t
+    elapsedtime=clock()-starttime
+
+    # Make a database entry and plot stuff
+    now=datetime.now().ctime()
+    db[str(now)]=str(elapsedtime)
+    everything=map(lambda x: [datetime.strptime(x[0], '%a %b %d %H:%M:%S %Y'), x[1]], db.items())
+    everything=sorted(everything, key=lambda x: x[0])
+    times, counts=zip(*everything)
+    plt.plot_date(times, counts, '.-', lw=.5, color='black')
+    plt.xlabel('Date')
+    plt.ylabel('Time elapsed')
+    plt.ylim(0,3)
+    plt.savefig("progress.pdf")
+    plt.xticks([])
+
+
 
 

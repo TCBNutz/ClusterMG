@@ -42,15 +42,15 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
 
     #list of matrices Fb giving the environment operators F(b) for each bit string b
     b=list(itertools.product([0,1],repeat=ph))
-    Fb=[1]*pdim
-    identity=np.diag([1]*envdim)
+    Fb=np.zeros((pdim, envdim, envdim), dtype=complex)
+    identity=np.eye(envdim)
 
     for j in range(pdim):
         for i in range(ph):
             if i==0:
-                Fb[j]=np.dot(A[b[j][ph-1],0],identity)
+                Fb[j]=np.dot(A[b[j][ph-1],0], identity)
             else:
-                Fb[j]=np.dot(A[b[j][ph-i-1],b[j][ph-i]],Fb[j])
+                Fb[j]=np.dot(A[b[j][ph-i-1], b[j][ph-i]], Fb[j])
 
     # making aux2 as a matrix such that every column is the state of emitter and photonic bit string
     aux1=np.zeros((2, pdim))
@@ -64,9 +64,6 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
 
     aux4=np.array([aux2[i].T[0] for i in range(pdim)])
     aux5=np.array([np.conj(Fb[j].T) for i in range(pdim)])
-    #print aux2[:,:,0]
-    print aux4
-    print aux5
 
     """full density matrix dmat"""
     # TODO: this is the dominant fraction of time
@@ -74,7 +71,7 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     dmatCn=np.array([[0.+0.J]*2**(ph+1)*envdim]*2**(ph+1)*envdim)
     for i in range(pdim):
         for j in range(pdim):
-            dmatCn=dmatCn+np.kron(np.kron(aux2[i], aux4[j]),np.dot(Fb[i],np.dot(envinit, aux5[j])))
+            dmatCn+=np.kron(np.kron(aux2[i], aux4[j]),np.dot(Fb[i],np.dot(envinit, aux5[j])))
 
     """ dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
     state we must rotate once more and then apply a Z-gate to each photon"""
