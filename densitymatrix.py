@@ -55,3 +55,6 @@ if __name__ == '__main__':
     plt.plot_date(times, counts, '.-', lw=.5, color='black')
     plt.xlabel('Date'); plt.ylabel('Time elapsed'); plt.ylim(0,3)
     plt.savefig("progress.pdf")
+
+
+
