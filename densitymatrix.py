@@ -8,7 +8,7 @@ from time import clock
 def main():
     """ setting parameters """
     ph=4 #number of photons
-    Alist=np.array([0,0,0,0])#hyperfine coefficients
+    Alist=np.array([0,0,0,0]) #hyperfine coefficients
     wlist=np.array([0,0,0,0]) #nuclear Zeeman
     bmat=np.array([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]) #dipolar coupling
     Omega=15 #emitter Zeeman
@@ -38,6 +38,8 @@ def main():
     print "finished"
 
 if __name__ == '__main__':
+    t=clock()
     main()
+    print clock()-t
 
 
