@@ -1,4 +1,4 @@
-py_target=densitymatrix
+py_target=test
 
 all: py clean
 

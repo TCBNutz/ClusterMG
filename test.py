@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     # Check that we are consistent with Thomas' method
     print "Checking consistency..."
-    dmat=getdm_new(0); dmat2=getdm_new(0)
+    dmat=getdm_new(0); dmat2=getdm_old(0)
     if np.allclose(dmat, dmat2):
         print "SUCCESS"
     else:
