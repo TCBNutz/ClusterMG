@@ -3,8 +3,8 @@ import pauli
 import auxiliary as aux
 import auxiliary_old as aux_old
 from sarmaH import *
-import itertools
 from time import clock
+import multiprocessing
 
 """ setting parameters """ # Made these random to track sparsity
 ph=4 #number of photons
@@ -23,16 +23,30 @@ envinit=1.0/6.0*(np.outer(np.conj(mkron((yp,yp,ym,ym)).T), mkron((yp,yp,ym,ym)))
                  np.outer(np.conj(mkron((ym,yp,ym,yp)).T), mkron((ym,yp,ym,yp)))+ \
                  np.outer(np.conj(mkron((ym,yp,yp,ym)).T), mkron((ym,yp,yp,ym))))
 
+def getdm_new(x): return aux.dmat(ph,Omega,wlist,Alist,bmat,envinit)
+def getdm_old(x): return aux_old.dmat(ph,Omega,wlist,Alist,bmat,envinit)
 
-t=clock()
-dmat=aux.dmat(ph,Omega,wlist,Alist,bmat,envinit)
-t1=clock()-t; t=clock()
-dmat2=aux_old.dmat(ph,Omega,wlist,Alist,bmat,envinit)
-t2=clock()-t
+if __name__ == '__main__':
+    cpus=multiprocessing.cpu_count()
+    p=multiprocessing.Pool(cpus)
 
-# Check that we are consistent with Thomas' method
-if np.allclose(dmat, dmat2):
-    print "Success. New/Old = %.4f" % (t1/t2)
-    print "Sparsity of dmat: %.3f" % (100.*np.sum(dmat==0)/np.prod(dmat.shape))
-else:
-    print "FAIL, new/old = %.4f" % (t1/t2)
+    print "Starting new method, using %d CPUs..." % cpus
+    t=clock()
+    dms=p.map(getdm_new, range(cpus))
+    t1=clock()-t
+    print "Done"
+
+    print "Starting old method, using 1 CPU..."
+    t=clock()
+    traces=map(getdm_old, range(cpus))
+    t2=clock()-t
+    print "Done"
+
+    # Check that we are consistent with Thomas' method
+    print "Checking consistency..."
+    dmat=getdm_new(0); dmat2=getdm_new(0)
+    if np.allclose(dmat, dmat2):
+        print "Success. Old/New = %.4f" % (t2/t1)
+        print "Sparsity of dmat: %.3f" % (100.*np.sum(dmat==0)/np.prod(dmat.shape))
+    else:
+        print "FAIL, new/old = %.4f" % (t1/t2)
