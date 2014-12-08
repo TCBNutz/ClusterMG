@@ -39,12 +39,11 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     dmatCn=np.zeros((d,d), dtype=complex)
     pd2=pdim*2
     for i in range(pdim):
-        x=i*envdim if i<pdim*envdim else i*envdim+pdim*envdim
+        x=i*envdim if i<pdim/2 else i*envdim+pdim*envdim
         for j in range(pdim):
-            y=j*envdim if j<pdim*envdim else j*envdim+pdim*envdim
+            y=j*envdim if j<pdim/2 else j*envdim+pdim*envdim
             post=np.dot(Fb[i], envfb[j])
             dmatCn[x:x+envdim, y:y+envdim] = post
-    print "awd"
     
     """Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
     phidentity=np.eye(pdim) #identity on photon string Hilbert space

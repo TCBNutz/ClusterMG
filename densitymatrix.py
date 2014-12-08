@@ -26,8 +26,10 @@ envinit=1.0/6.0*(np.outer(np.conj(mkron((yp,yp,ym,ym)).T), mkron((yp,yp,ym,ym)))
 
 t=clock()
 dmat=aux.dmat(ph,Omega,wlist,Alist,bmat,envinit)
+print "did new way"
 t1=clock()-t; t=clock()
 dmat2=aux_old.dmat(ph,Omega,wlist,Alist,bmat,envinit)
+print "did old way"
 t2=clock()-t
 
 # Check that we are consistent with Thomas' method
