@@ -1,13 +1,15 @@
 """ some auxiliary functions """
-import itertools
+import itertools as it
 import numpy as np
 from sarmaH import *
+import sys
+from scipy import sparse
 
 """ function measurement returns state of the unmeasured qubits after projective measurement
 onto |state> state of qubit at position position. Initial state given by dmat."""
 def measurement(dmat,position,state):
     qb=int(np.round(np.log2(len(dmat[0])))) # number of qubits in initial state
-    bitstring=list(itertools.product([0,1],repeat=qb-1))
+    bitstring=list(it.product([0,1],repeat=qb-1))
     a=np.array([[0.+0.J]*2**(qb)]*2**(qb-1))
     for i in range(2**(qb-1)):
         b=[0]*qb
@@ -41,7 +43,7 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     A=np.array([[Unum[0:envdim,0:envdim],Unum[0:envdim,envdim:]],[Unum[envdim:,0:envdim],Unum[envdim:,envdim:]]])
 
     #list of matrices Fb giving the environment operators F(b) for each bit string b
-    b=list(itertools.product([0,1],repeat=ph))
+    b=list(it.product([0,1],repeat=ph))
     Fb=np.zeros((pdim, envdim, envdim), dtype=complex)
     identity=np.eye(envdim)
 
@@ -56,22 +58,25 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     aux1=np.zeros((2, pdim))
     aux1[0,b[i][0]==0]=1; aux1[0,b[i][0]!=0]=1
 
-    aux2=np.zeros((2**ph, 2**(ph+1), 1))
-    for i in range(2**ph):
+    aux2=np.zeros((pdim, 2**(ph+1)))
+    for i in range(pdim):
         aux3=np.zeros((pdim, 1))
         aux3[i,0]=1
         aux2[i]=np.kron(aux1[:,[i]], aux3) #TODO: kron between a 1d permutation matrix and aux1[i] is just a shift, this whole function is doing something trivial
+    print aux2
 
+    # TODO: aux2 is very sparse, i think
     aux4=np.array([aux2[i].T[0] for i in range(pdim)])
     aux5=np.array([np.conj(Fb[j].T) for i in range(pdim)])
 
     """full density matrix dmat"""
-    # TODO: this is the dominant fraction of time
-    # TODO: last resort is to parallelize.
+    # TODO: this section accounts for the dominant fraction of time. last resort is to use four cores.
     dmatCn=np.array([[0.+0.J]*2**(ph+1)*envdim]*2**(ph+1)*envdim)
-    for i in range(pdim):
-        for j in range(pdim):
-            dmatCn+=np.kron(np.kron(aux2[i], aux4[j]),np.dot(Fb[i],np.dot(envinit, aux5[j])))
+
+    # TODO i think there is redundancy in np.dot(Fb[i],np.dot(envinit, aux5[j])
+    get_term = lambda i,j: np.kron(np.kron(aux2[i], aux4[j]), np.dot(Fb[i],np.dot(envinit, aux5[j])))
+    terms=(get_term(i,j) for i,j in it.product(xrange(pdim), repeat=2))
+    dmatCn=np.sum(terms)
 
     """ dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
     state we must rotate once more and then apply a Z-gate to each photon"""
