@@ -4,29 +4,6 @@ import numpy as np
 from sarmaH import *
 import pauli
 
-""" function measurement returns state of the unmeasured qubits after projective measurement
-onto |state> state of qubit at position position. Initial state given by dmat."""
-def measurement(dmat,position,state):
-    qb=int(np.round(np.log2(len(dmat[0])))) # number of qubits in initial state
-    bitstring=list(itertools.product([0,1],repeat=qb-1))
-    a=np.array([[0.+0.J]*2**(qb)]*2**(qb-1))
-    for i in range(2**(qb-1)):
-        b=[0]*qb
-        for j in range(position):
-            if bitstring[i][j]==0:
-                b[j]=np.array([1,0])
-            else:
-                b[j]=np.array([0,1])
-        b[position]=state
-        for j in range(position,qb-1):
-            if bitstring[i][j]==0:
-                b[j+1]=np.array([1,0])
-            else:
-                b[j+1]=np.array([0,1])
-        a[i]=reduce(np.kron,b)
-    dmatnew=reduce(np.dot,[np.conj(a),dmat,a.T])
-    return 1.0/np.trace(dmatnew)*dmatnew
-
 """ function dmat gives full Emitter x PhotonString x Environment density matrix. ph is number of photons, Omega is
 Zeeman energy of emitter, wlist is list of Zeeman energies of environment spins, Alist is list of hyperfine couplings"""
 def dmat(ph,Omega,wlist,Alist,bmat,envinit):
@@ -53,27 +30,32 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
             else:
                 Fb[j]=np.dot(A[b[j][ph-i-1], b[j][ph-i]], Fb[j]) # Act the operator for each photon
 
-    # making aux2 as a matrix such that every column is the state of emitter and photonic bit string
-    # Note that aux1, aux2 and aux3 depend only on the number of photons.
-    b=np.array(list(itertools.product([0,1],repeat=ph)))
+    # Making aux2 as a matrix such that every column is the state of emitter and photonic bit string
     aux2=np.zeros((pdim, 2**(ph+1), 1))
-    aux1=np.vstack((b[:,0]==0, b[:,0]!=0))
     for i in range(pdim):
-        aux3=np.array([[0]]*pdim)
-        aux3[i,0]=1
-        aux2[i]=np.kron(aux1[:,[i]],aux3)
-    # aux1, aux2 and aux3 are very sparse binary matrices. there must be a good optimization
-    print aux2[:,:,0]
-    print aux1
+        aux2[i, i if i<pdim/2 else pdim+i]=1
 
-    #aux2=np.hstack(np.kron(aux1[:, [i]], 
+    # Precompute env dot Fb
+    envfb = [np.dot(envinit, np.conj(Fb[j].T)) for j in xrange(pdim)]
 
     """full density matrix dmat"""
     d=2**(ph+1)*envdim
     dmatCn=np.zeros((d,d), dtype=complex)
     for i in range(pdim):
         for j in range(pdim):
-            dmatCn=dmatCn+np.kron(np.kron(aux2[i],aux2[j].T[0]),np.dot(Fb[i],np.dot(envinit,np.conj(Fb[j].T))))
+            pre=np.kron(aux2[i], aux2[j].T[0])
+            post=np.dot(Fb[i], envfb[j])
+            region=np.kron(pre, np.ones(post.shape))
+            x=np.arange(len(region))[np.sum(region, axis=0)>0]
+            y=np.arange(len(region))[np.sum(region, axis=1)>0]
+            # todo: need a generating function for this stuff
+            print i, j
+            print min(x), max(x)
+            print min(y), max(y)
+            print 
+            dmatCn+=np.kron(pre, post)
+
+    
 
     """ dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
     state we must rotate once more and then apply a Z-gate to each photon"""
@@ -88,3 +70,28 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
     Zph=reduce(np.kron, (pauli.sz for i in xrange(ph)))
     ZphBig=np.kron(np.array([[1,0],[0,1]]),np.kron(Zph,identity))
     return np.dot(np.dot(ZphBig,Uph),np.dot(dmatCn,np.conj(np.dot(ZphBig,Uph).T)))
+
+
+""" function measurement returns state of the unmeasured qubits after projective measurement
+onto |state> state of qubit at position position. Initial state given by dmat."""
+def measurement(dmat,position,state):
+    qb=int(np.round(np.log2(len(dmat[0])))) # number of qubits in initial state
+    bitstring=list(itertools.product([0,1],repeat=qb-1))
+    a=np.array([[0.+0.J]*2**(qb)]*2**(qb-1))
+    for i in range(2**(qb-1)):
+        b=[0]*qb
+        for j in range(position):
+            if bitstring[i][j]==0:
+                b[j]=np.array([1,0])
+            else:
+                b[j]=np.array([0,1])
+        b[position]=state
+        for j in range(position,qb-1):
+            if bitstring[i][j]==0:
+                b[j+1]=np.array([1,0])
+            else:
+                b[j+1]=np.array([0,1])
+        a[i]=reduce(np.kron,b)
+    dmatnew=reduce(np.dot,[np.conj(a),dmat,a.T])
+    return 1.0/np.trace(dmatnew)*dmatnew
+
