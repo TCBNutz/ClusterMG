@@ -26,14 +26,13 @@ envinit=1.0/6.0*(np.outer(np.conj(mkron((yp,yp,ym,ym)).T), mkron((yp,yp,ym,ym)))
 
 t=clock()
 dmat=aux.dmat(ph,Omega,wlist,Alist,bmat,envinit)
-print "did new way"
 t1=clock()-t; t=clock()
 dmat2=aux_old.dmat(ph,Omega,wlist,Alist,bmat,envinit)
-print "did old way"
 t2=clock()-t
 
 # Check that we are consistent with Thomas' method
 if np.allclose(dmat, dmat2):
-    print "success. new/old = %.4f" % (t1/t2)
+    print "Success. New/Old = %.4f" % (t1/t2)
+    print "Sparsity of dmat: %.3f" % (100.*np.sum(dmat==0)/np.prod(dmat.shape))
 else:
-    print "fail, new/old = %.4f" % (t1/t2)
+    print "FAIL, new/old = %.4f" % (t1/t2)

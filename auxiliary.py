@@ -30,20 +30,20 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
             else:
                 Fb[j]=np.dot(A[b[j][ph-i-1], b[j][ph-i]], Fb[j]) # Act the operator for each photon
 
-    # Precompute env dot Fb
-    envfb = [np.dot(envinit, np.conj(Fb[j].T)) for j in xrange(pdim)]
-
-    """ density matrix dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
-    state we must rotate once more and then apply a Z-gate to each photon"""
+    """ 
+    Density matrix dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). 
+    To make this a Cluster state we must rotate once more and then apply a Z-gate to each photon
+    NOTE: dmatCn is about 75% sparse suggesting possible further optimization
+    """
     d=2**(ph+1)*envdim
     dmatCn=np.zeros((d,d), dtype=complex)
-    pd2=pdim*2
-    for i in range(pdim):
-        x=i*envdim if i<pdim/2 else i*envdim+pdim*envdim
-        for j in range(pdim):
-            y=j*envdim if j<pdim/2 else j*envdim+pdim*envdim
-            post=np.dot(Fb[i], envfb[j])
-            dmatCn[x:x+envdim, y:y+envdim] = post
+    ndim=pdim*envdim
+    for j in range(pdim):
+        y=j*envdim if j<pdim/2 else j*envdim+ndim
+        envfb = np.dot(envinit, np.conj(Fb[j].T))
+        for i in range(pdim):
+            x=i*envdim if i<pdim/2 else i*envdim+ndim
+            dmatCn[x:x+envdim, y:y+envdim] = np.dot(Fb[i], envfb)
     
     """Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
     phidentity=np.eye(pdim) #identity on photon string Hilbert space
@@ -53,7 +53,7 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
 
     """Z-gate on each photon"""
     Zph=reduce(np.kron, (pauli.sz for i in xrange(ph)))
-    ZphBig=np.kron(np.array([[1,0],[0,1]]),np.kron(Zph,identity))
+    ZphBig=np.kron(np.eye(2), np.kron(Zph,identity))
     return np.dot(np.dot(ZphBig,Uph),np.dot(dmatCn,np.conj(np.dot(ZphBig,Uph).T)))
 
 
