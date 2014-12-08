@@ -7,7 +7,7 @@ import itertools
 from time import clock
 
 """ setting parameters """ # Made these random to track sparsity
-ph=2 #number of photons
+ph=4 #number of photons
 Alist=np.random.uniform(-1,1,4) #hyperfine coefficients
 wlist=np.random.uniform(-1,1,4) #nuclear Zeeman
 bmat=np.random.uniform(-1,1,(4,4)) #dipolar coupling
@@ -32,6 +32,6 @@ t2=clock()-t
 
 # Check that we are consistent with Thomas' method
 if np.allclose(dmat, dmat2):
-    print "success: %.4f" % (t1/t2)
+    print "success. new/old = %.4f" % (t1/t2)
 else:
-    print "fail"
+    print "fail, new/old = %.4f" % (t1/t2)

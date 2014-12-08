@@ -30,36 +30,22 @@ def dmat(ph,Omega,wlist,Alist,bmat,envinit):
             else:
                 Fb[j]=np.dot(A[b[j][ph-i-1], b[j][ph-i]], Fb[j]) # Act the operator for each photon
 
-    # Making aux2 as a matrix such that every column is the state of emitter and photonic bit string
-    aux2=np.zeros((pdim, 2**(ph+1), 1))
-    for i in range(pdim):
-        aux2[i, i if i<pdim/2 else pdim+i]=1
-
     # Precompute env dot Fb
     envfb = [np.dot(envinit, np.conj(Fb[j].T)) for j in xrange(pdim)]
 
-    """full density matrix dmat"""
+    """ density matrix dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
+    state we must rotate once more and then apply a Z-gate to each photon"""
     d=2**(ph+1)*envdim
     dmatCn=np.zeros((d,d), dtype=complex)
+    pd2=pdim*2
     for i in range(pdim):
+        x=i*envdim if i<pdim*envdim else i*envdim+pdim*envdim
         for j in range(pdim):
-            pre=np.kron(aux2[i], aux2[j].T[0])
+            y=j*envdim if j<pdim*envdim else j*envdim+pdim*envdim
             post=np.dot(Fb[i], envfb[j])
-            region=np.kron(pre, np.ones(post.shape))
-            x=np.arange(len(region))[np.sum(region, axis=0)>0]
-            y=np.arange(len(region))[np.sum(region, axis=1)>0]
-            # todo: need a generating function for this stuff
-            print i, j
-            print min(x), max(x)
-            print min(y), max(y)
-            print 
-            dmatCn+=np.kron(pre, post)
-
+            dmatCn[x:x+envdim, y:y+envdim] = post
+    print "awd"
     
-
-    """ dmat gives the (approximation to) the state |C_n> (eq. 1 in Dara's paper). To make this a Cluster
-    state we must rotate once more and then apply a Z-gate to each photon"""
-
     """Uph is the propagator for Pi/2 rotation in the emitter + photon string + environment number basis """
     phidentity=np.eye(pdim) #identity on photon string Hilbert space
     Uph=np.kron(np.array([[1,0],[0,0]]),np.kron(phidentity,A[0,0]))+\
