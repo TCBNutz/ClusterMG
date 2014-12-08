@@ -29,7 +29,6 @@ def measurement(dmat,position,state):
 """ function dmat gives full Emitter x PhotonString x Environment density matrix. ph is number of photons, Omega is
 Zeeman energy of emitter, wlist is list of Zeeman energies of environment spins, Alist is list of hyperfine couplings"""
 def dmat(ph,Omega,wlist,Alist,bmat,envinit):
-    print "Calculating a density matrix..."
     envdim=2**len(Alist) #environment dimension
     OmegaEff=Omega + 0.25*sum(Alist**2)/Omega #effective magnetic field, <Overhauser> = 0
 
