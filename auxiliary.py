@@ -80,3 +80,37 @@ def measurement(dmat,position,state):
     dmatnew=reduce(np.dot,[np.conj(a),dmat,a.T])
     return 1.0/np.trace(dmatnew)*dmatnew
 
+
+""" function TraceOverEnv(dmat,env) traces over the environment of #env qubits in a full density
+matrix dmat and returns the reduced density matrix"""
+def TraceOverEnv(dmat,env):
+    envdim=2**env
+    sysdim=len(dmat)/envdim
+    dmatred=np.array([[0.+0.j]*sysdim]*sysdim)
+    for m in range(sysdim):
+        for n in range(sysdim):
+            dmatred[m,n]=np.trace(dmat[m*envdim:(m+1)*envdim,n*envdim:(n+1)*envdim])
+    return dmatred
+
+
+""" function TraceOverDot(dmat) traces over the Quantum dot (first qubit) in a QD x 2photons state """
+def TraceOverDot(dmat):
+    dmatrednew=np.array([[0.+0.j]*4]*4)
+    for m in range(4):
+        for n in range(4):
+            dmatrednew[m,n]=dmat[m,n]+dmat[m+4,n+4]   
+    return dmatrednew
+
+
+""" function eof(dmat) gives the entanglement of formation of two qubits
+described by density matrix dmat. dmat must be 4x4."""
+def eof(dmat):
+    YY=np.kron(pauli.sy,pauli.sy)
+    rhotilde=reduce(np.dot,[YY,np.conj(dmat),YY])
+    eigs=np.sort(np.sqrt(np.linalg.eig(np.dot(dmat,rhotilde))[0]))
+    C=max(0,eigs[3]-eigs[2]-eigs[1]-eigs[0])
+    if C==0:
+        return 0
+    else:   
+        x=0.5*(1+np.sqrt(1-C**2))
+        return -x*np.log2(x)-(1-x)*np.log2(1-x)

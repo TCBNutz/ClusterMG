@@ -4,13 +4,14 @@ import auxiliary as aux
 import auxiliary_old as aux_old
 from sarmaH import *
 import multiprocessing
+from time import clock
 
 """ setting parameters """ # Made these random to track sparsity
-ph=4 #number of photons
-Alist=np.random.uniform(-1,1,4) #hyperfine coefficients
-wlist=np.random.uniform(-1,1,4) #nuclear Zeeman
-bmat=np.random.uniform(-1,1,(4,4)) #dipolar coupling
-Omega=15 #emitter Zeeman
+ph=5 #number of photons
+Alist=np.array([1.0,1.0,1.0,1.0]) #hyperfine coefficients
+wlist=2*np.array([1.0,1.0,1.0,1.0]) #nuclear Zeeman
+bmat=0.25*np.array([[0,1,1,1],[1,0,1,1],[1,1,0,1],[1,1,1,0]]) #dipolar coupling
+Omega=3.0 #emitter Zeeman
 
 #initial unpolarized state of environment, the ugly way
 yp, ym=pauli.yp, pauli.ym
@@ -26,28 +27,24 @@ def getdm_new(x): return aux.dmat(ph,Omega,wlist,Alist,bmat,envinit)
 
 def getdm_old(x): return aux_old.dmat(ph,Omega,wlist,Alist,bmat,envinit)
 
-if __name__ == '__main__':
-    iterations=8
+t=clock()
+dms=getdm_new(0)
+t2=clock()-t
+print(t2)
 
-    # Compare some speeds
-    print "Old method, %d iterations, using 1 CPU..." % (iterations)
-    traces=map(getdm_old, range(iterations))
-    print "Done.\n"
+dmsred=aux.TraceOverEnv(dms,4)
+Z1=pauli.spspec(ph+1,3,1)
+X2=pauli.spspec(ph+1,1,2)
+Z3=pauli.spspec(ph+1,3,3)
+observable=reduce(np.dot,[Z1,X2,Z3])
+ZXZ=np.trace(np.dot(observable,dmsred))
 
-    print "New method, %d iterations, using 1 CPU..." % (iterations)
-    dms=map(getdm_new, range(iterations))
-    print "Done.\n"
+projectors=[pauli.zp,pauli.xp,pauli.zp]
+tobmsrd=[1,2,3]
+for i in range(3):
+    dmsred=aux.measurement(dmsred,tobmsrd[i],projectors[i])
 
-    cpus=multiprocessing.cpu_count()
-    p=multiprocessing.Pool(cpus)
-    print "New method, %d interations, using %d CPUs..." % (iterations, cpus)
-    dms=p.map(getdm_new, range(iterations))
-    print "Done.\n"
-
-    # Check that we are consistent with Thomas' method
-    print "Checking consistency..."
-    dmat=getdm_new(0); dmat2=getdm_new(0)
-    if np.allclose(dmat, dmat2):
-        print "SUCCESS"
-    else:
-        print "FAIL" 
+#trace over dot
+dmatphotons=aux.TraceOverDot(dmsred)
+eof=aux.eof(dmatphotons)
+print(eof)
